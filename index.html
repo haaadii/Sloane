@@ -9,42 +9,34 @@
     <style>
         :root { --glow: #00ffc3; --dark: #050505; --panel: rgba(10, 15, 15, 0.9); }
         body, html { margin: 0; padding: 0; background: var(--dark); color: var(--glow); font-family: 'JetBrains Mono', monospace; overflow: hidden; height: 100vh; }
-        
-        /* Background Grid */
         body::before { content: ""; position: absolute; width: 100%; height: 100%; background-image: linear-gradient(rgba(0, 255, 195, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 195, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -1; }
-
         #app { display: grid; grid-template-columns: 1fr 350px; height: 100vh; padding: 10px; gap: 10px; box-sizing: border-box; }
-        
-        /* Camera Viewport */
-        .viewport { position: relative; border: 1px solid var(--glow); background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(0.5) contrast(1.2) brightness(0.8); }
+        .viewport { position: relative; border: 1px solid var(--glow); background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,255,195,0.1); }
+        video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(0.4) contrast(1.1); }
         canvas { position: absolute; top: 0; left: 0; }
-        .scanline { position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 195, 0.5); box-shadow: 0 0 15px var(--glow); top: 0; animation: scan 3s linear infinite; z-index: 10; }
-
-        /* Sidebar UI */
-        .sidebar { background: var(--panel); border: 1px solid var(--glow); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; text-transform: uppercase; font-size: 0.8rem; }
-        .status-bar { border-bottom: 1px solid var(--glow); padding-bottom: 10px; font-weight: 800; letter-spacing: 2px; }
-        
-        input, select { background: transparent; border: 1px solid #333; color: var(--glow); padding: 10px; font-family: inherit; margin-top: 5px; width: 100%; box-sizing: border-box; }
-        input:focus { border-color: var(--glow); outline: none; }
-        button { background: var(--glow); color: #000; border: none; padding: 12px; cursor: pointer; font-weight: 800; transition: 0.3s; margin-top: 10px; width: 100%; }
-        button:hover { background: #fff; box-shadow: 0 0 20px var(--glow); }
-
+        .scanline { position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 195, 0.5); box-shadow: 0 0 15px var(--glow); top: 0; animation: scan 3s linear infinite; z-index: 10; pointer-events: none; }
+        .sidebar { background: var(--panel); border: 1px solid var(--glow); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; text-transform: uppercase; font-size: 0.75rem; border-radius: 2px; }
+        .status-bar { border-bottom: 1px solid var(--glow); padding-bottom: 10px; font-weight: 800; letter-spacing: 2px; display: flex; justify-content: space-between; }
+        input { background: rgba(255,255,255,0.05); border: 1px solid #333; color: var(--glow); padding: 10px; font-family: inherit; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        input:focus { border-color: var(--glow); outline: none; background: rgba(0,255,195,0.05); }
+        button { background: var(--glow); color: #000; border: none; padding: 12px; cursor: pointer; font-weight: 800; transition: 0.3s; width: 100%; letter-spacing: 1px; }
+        button:hover { background: #fff; box-shadow: 0 0 15px var(--glow); }
+        .btn-alt { background: transparent; color: var(--glow); border: 1px solid var(--glow); margin-top: 5px; }
         .hidden { display: none !important; }
-        .profile-card { border: 1px solid #333; padding: 10px; margin-top: 10px; background: rgba(0,255,195,0.05); }
-        .profile-card b { color: #fff; }
-
+        .profile-card { border: 1px solid #333; padding: 12px; background: rgba(0,255,195,0.03); line-height: 1.6; border-left: 3px solid var(--glow); }
+        .profile-card b { color: #fff; font-weight: 500; }
         @keyframes scan { from { top: 0; } to { top: 100%; } }
     </style>
 </head>
 <body>
 
 <div id="auth-screen" style="position:fixed; inset:0; background:var(--dark); z-index:100; display:flex; align-items:center; justify-content:center; flex-direction:column;">
-    <h1 style="letter-spacing:10px; font-weight:800;">SLOANE <span style="font-size:0.5rem; vertical-align:middle;">V.1.0</span></h1>
-    <div style="width:300px;">
-        <input type="text" id="login-email" placeholder="ADMIN_ID">
-        <input type="password" id="login-pw" placeholder="SECRET_PASS">
-        <button onclick="handleLogin()">ACCESS SYSTEM</button>
+    <h1 id="auth-title" style="letter-spacing:15px; font-weight:800; margin-bottom:30px; text-shadow: 0 0 10px var(--glow);">SLOANE_OS</h1>
+    <div style="width:320px; background: var(--panel); padding: 30px; border: 1px solid #333;">
+        <input type="email" id="auth-email" placeholder="USER_ID@SECURE.COM" style="margin-bottom:10px;">
+        <input type="password" id="auth-pw" placeholder="ACCESS_KEY" style="margin-bottom:20px;">
+        <button id="main-auth-btn" onclick="handleAuth()">LOGIN_SEQUENCE</button>
+        <button class="btn-alt" id="toggle-auth-btn" onclick="toggleAuthMode()">INITIALIZE_NEW_ID</button>
     </div>
 </div>
 
@@ -54,25 +46,25 @@
         <video id="video" autoplay muted></video>
         <canvas id="overlay"></canvas>
     </div>
-
     <div class="sidebar">
-        <div class="status-bar">SYSTEM_STATUS: <span id="sys-status">LOADING_IA...</span></div>
-        
-        <div id="detection-info">
-            <p>> TARGET_IDENTIFICATION:</p>
-            <div id="user-data" class="profile-card">SEARCHING...</div>
+        <div class="status-bar">
+            <span>SYS_CORE: <span id="sys-status" style="color:#f00;">LOADING</span></span>
+            <span id="clock">00:00:00</span>
         </div>
-
-        <hr style="border:0; border-top:1px solid #333; width:100%;">
-
+        <div id="detection-info">
+            <p style="opacity:0.6;">> ACTIVE_RECOGNITION:</p>
+            <div id="user-data" class="profile-card">IDLE_SCANNING...</div>
+        </div>
+        <hr style="border:0; border-top:1px solid #222; margin: 10px 0;">
         <div id="admin-panel">
-            <p>> CREATE_NEW_PROFILE</p>
-            <input type="text" id="f-name" placeholder="PRENOM">
-            <input type="text" id="l-name" placeholder="NOM">
-            <input type="date" id="dob" placeholder="DATE_NAISSANCE">
-            <input type="text" id="p-birth" placeholder="PAYS_NAISSANCE">
-            <input type="text" id="p-res" placeholder="PAYS_RESIDENCE">
-            <button onclick="registerFace()">ENREGISTRER EMPREINTE</button>
+            <p style="opacity:0.6;">> ENROLLMENT_MODULE</p>
+            <input type="text" id="f-name" placeholder="FIRST_NAME" style="margin-bottom:5px;">
+            <input type="text" id="l-name" placeholder="LAST_NAME" style="margin-bottom:5px;">
+            <input type="date" id="dob" style="margin-bottom:5px;">
+            <input type="text" id="p-birth" placeholder="BORN_IN" style="margin-bottom:5px;">
+            <input type="text" id="p-res" placeholder="CURRENT_LOC" style="margin-bottom:10px;">
+            <button onclick="registerFace()">GENERATE_DESCRIPTOR</button>
+            <button class="btn-alt" onclick="location.reload()" style="margin-top:20px;">TERMINATE_SESSION</button>
         </div>
     </div>
 </div>
@@ -80,48 +72,59 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 
     const firebaseConfig = {
-        apiKey: "TON_API_KEY",
-        authDomain: "TON_PROJET.firebaseapp.com",
-        projectId: "TON_PROJET",
-        storageBucket: "TON_PROJET.appspot.com",
-        messagingSenderId: "ID",
-        appId: "APP_ID"
+        apiKey: "AIzaSyA-7iB68TEkhuN8dGxeneei0NP1_BFpIFE",
+        authDomain: "sloane-aedcf.firebaseapp.com",
+        projectId: "sloane-aedcf",
+        storageBucket: "sloane-aedcf.firebasestorage.app",
+        messagingSenderId: "627916972244",
+        appId: "1:627916972244:web:5293ec6f419de650fa9b41"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    let isLoginMode = true;
     const video = document.getElementById('video');
     const canvas = document.getElementById('overlay');
     let labeledDescriptors = [];
 
-    // Connexion
-    window.handleLogin = async () => {
-        const email = document.getElementById('login-email').value;
-        const pass = document.getElementById('login-pw').value;
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+
+    window.toggleAuthMode = () => {
+        isLoginMode = !isLoginMode;
+        document.getElementById('auth-title').innerText = isLoginMode ? "SLOANE_LOGIN" : "SLOANE_SIGNUP";
+        document.getElementById('main-auth-btn').innerText = isLoginMode ? "LOGIN_SEQUENCE" : "CREATE_IDENTITY";
+        document.getElementById('toggle-auth-btn').innerText = isLoginMode ? "INITIALIZE_NEW_ID" : "RETURN_TO_LOGIN";
+    };
+
+    window.handleAuth = async () => {
+        const email = document.getElementById('auth-email').value;
+        const pass = document.getElementById('auth-pw').value;
         try {
-            await signInWithEmailAndPassword(auth, email, pass);
+            if (isLoginMode) { await signInWithEmailAndPassword(auth, email, pass); }
+            else { await createUserWithEmailAndPassword(auth, email, pass); alert("ID_CREATED. AUTHENTICATING..."); }
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
             startSystem();
-        } catch (e) { alert("ACCESS_DENIED"); }
+        } catch (e) { alert("ERROR_CODE: " + e.code); }
     };
 
     async function startSystem() {
         const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+        document.getElementById('sys-status').innerText = "LOADING_MODELS";
         await Promise.all([
             faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
             faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
         ]);
-        
         document.getElementById('sys-status').innerText = "ONLINE";
-        navigator.mediaDevices.getUserMedia({ video: {} }).then(stream => video.srcObject = stream);
-        
+        document.getElementById('sys-status').style.color = "#00ffc3";
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        video.srcObject = stream;
         loadProfiles();
         setInterval(detect, 1000);
     }
@@ -129,8 +132,8 @@
     async function loadProfiles() {
         const querySnapshot = await getDocs(collection(db, "profiles"));
         labeledDescriptors = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return new faceapi.LabeledFaceDescriptors(data.id, [new Float32Array(data.descriptor)]);
+            const d = doc.data();
+            return new faceapi.LabeledFaceDescriptors(d.id, [new Float32Array(d.descriptor)]);
         });
     }
 
@@ -138,36 +141,30 @@
         if (labeledDescriptors.length === 0) return;
         const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
         faceapi.matchDimensions(canvas, displaySize);
-
         const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-        
-        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-        const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
-
+        const resized = faceapi.resizeResults(detections, displaySize);
+        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+        const results = resized.map(d => faceMatcher.findBestMatch(d.descriptor));
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        results.forEach((result, i) => {
-            const box = resizedDetections[i].detection.box;
-            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString(), boxColor: '#00ffc3' });
-            drawBox.draw(canvas);
-            
-            if (result.label !== 'unknown') fetchDetails(result.label);
+        results.forEach((res, i) => {
+            const box = resized[i].detection.box;
+            new faceapi.draw.DrawBox(box, { label: res.toString(), boxColor: '#00ffc3' }).draw(canvas);
+            if (res.label !== 'unknown') displayProfile(res.label);
         });
     }
 
-    async function fetchDetails(id) {
-        const querySnapshot = await getDocs(collection(db, "profiles"));
-        querySnapshot.forEach(doc => {
+    async function displayProfile(id) {
+        const qs = await getDocs(collection(db, "profiles"));
+        qs.forEach(doc => {
             if (doc.data().id === id) {
                 const d = doc.data();
                 document.getElementById('user-data').innerHTML = `
                     <b>ID:</b> ${d.id}<br>
-                    <b>NOM:</b> ${d.prenom} ${d.nom}<br>
-                    <b>NÉ LE:</b> ${d.dob}<br>
-                    <b>ORIGINE:</b> ${d.paysNais}<br>
-                    <b>RESIDENCE:</b> ${d.paysHab}
+                    <b>SUBJECT:</b> ${d.prenom} ${d.nom}<br>
+                    <b>BORN:</b> ${d.dob}<br>
+                    <b>NATIVE:</b> ${d.paysNais}<br>
+                    <b>LOC:</b> ${d.paysHab}
                 `;
             }
         });
@@ -175,21 +172,15 @@
 
     window.registerFace = async () => {
         const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-        if (!detection) return alert("AUCUN VISAGE DÉTECTÉ");
-
-        const id = "SLN-" + Math.floor(Math.random()*9999);
+        if (!detection) return alert("TARGET_NOT_FOUND");
+        const id = "SLN-" + Math.floor(1000 + Math.random()*9000);
         const profile = {
-            id: id,
-            prenom: document.getElementById('f-name').value,
-            nom: document.getElementById('l-name').value,
-            dob: document.getElementById('dob').value,
-            paysNais: document.getElementById('p-birth').value,
-            paysHab: document.getElementById('p-res').value,
-            descriptor: Array.from(detection.descriptor)
+            id, prenom: document.getElementById('f-name').value, nom: document.getElementById('l-name').value,
+            dob: document.getElementById('dob').value, paysNais: document.getElementById('p-birth').value,
+            paysHab: document.getElementById('p-res').value, descriptor: Array.from(detection.descriptor)
         };
-
         await addDoc(collection(db, "profiles"), profile);
-        alert("PROFIL ENREGISTRÉ : " + id);
+        alert("ENROLLMENT_SUCCESS: " + id);
         loadProfiles();
     };
 </script>
